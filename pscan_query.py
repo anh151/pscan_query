@@ -4,8 +4,31 @@ import re
 import sys
 import warnings
 
-import pandas as pd
-import requests
+
+def install_dependencies():
+    user_response = input(
+        "Required libraries are not installed. Allow global installation? (y/n)"
+    )
+    if user_response.lower().strip() != "y":
+        sys.exit("ERROR: Exiting due to missing libraries.")
+    import subprocess
+
+    command = subprocess.run(
+        ["pip", "install", "pandas", "requests", "openpyxl", "--quiet"],
+        capture_output=True,
+        text=True,
+    )
+    if command.returncode != 0:
+        sys.exit(
+            f"ERROR: Attempt to install dependencies manually resulted in error:{command.stderr}.\nTry installing manully."
+        )
+
+
+try:
+    import pandas as pd
+    import requests
+except ModuleNotFoundError:
+    install_dependencies()
 
 warnings.filterwarnings("ignore", category=UserWarning, module="openpyxl")
 
@@ -148,7 +171,7 @@ def send_cpic_request(gene):
 
 
 def parse_cpic_response(response):
-    cpic_data = pd.read_excel(response.content, header=5)
+    cpic_data = pd.read_excel(response.content, header=5, engine="openpyxl")
     cpic_data = cpic_data.transpose().drop(columns=0)
     new_header = cpic_data.iloc[0]
     cpic_data = cpic_data[1:]
@@ -185,10 +208,16 @@ def check_output_path(output_path):
         sys.exit("ERROR: Output file path is not valid.")
 
 
+def check_overall_input(args):
+    if not args.gene and not args.pos and not args.rsid:
+        sys.exit("ERROR: Must supply one of gene, position, or rsid.")
+
+
 def main():
     args = get_args()
     check_input_file(args.file)
     pscan_data = read_table(args.file)
+    check_overall_input()
     if args.gene:
         check_gene_input(pscan_data, args.gene)
         pscan_data = filter_by_gene(pscan_data, args.gene)
@@ -206,4 +235,7 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except:
+        print("An unknown error as occurred.")
