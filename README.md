@@ -10,6 +10,7 @@ Dependencies:
 - pandas
 - requests
 - openpyxl
+
 If dependencies are not already preinstalled, pscan_query will attempt to install these on the first run with user permission.
 
 Installation can be done by either cloning the repository as shown below or by downloading the files into a directory
@@ -30,7 +31,9 @@ Arguments:
 ```
 
 Pharmacoscan input file is supplied with the tool. If a different file needs to be used, this can be passed in via the -f option.
-One of -g, -r, or -p must be supplied. 
+
+One of -g, -r, or -p must be supplied.
+ 
 Default output file will be the current working directory with file name output.csv.
 
 Examples:
