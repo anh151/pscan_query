@@ -1,11 +1,13 @@
 import re
 import warnings
 import utils
+import webbrowser
 
 try:
     import dash
 except ModuleNotFoundError:
     utils.install_dependencies(["dash"])
+    import dash
 from dash.dependencies import Input, Output
 import dash_core_components as dcc
 import dash_html_components as html
@@ -20,6 +22,7 @@ app = dash.Dash(
     suppress_callback_exceptions=True,
 )
 
+webbrowser.open("http://127.0.0.1:8050/")
 pscan_data = utils.read_table("PharmacoScan_96F.r8_UPMC_2.na36.dc_annot.csv")
 
 search_data = utils.SearchData()
@@ -212,4 +215,4 @@ def compile_results(n_clicks):
 
 
 if __name__ == "__main__":
-    app.run_server(debug=True)
+    app.run_server(port=8050)
