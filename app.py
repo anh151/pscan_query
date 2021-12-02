@@ -9,9 +9,7 @@ except ModuleNotFoundError:
     utils.install_dependencies(["dash"])
     import dash
 from dash.dependencies import Input, Output
-import dash_core_components as dcc
-import dash_html_components as html
-import dash_table
+from dash import dcc, html, dash_table
 
 
 external_stylesheets = ["https://codepen.io/chriddyp/pen/bWLwgP.css"]

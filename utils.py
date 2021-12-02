@@ -4,14 +4,14 @@ import warnings
 
 def install_dependencies(libraries):
     user_response = input(
-        "Required libraries are not installed. Allow global installation? (y/n)"
+        "Required libraries are not installed. Allow global installation? (y/n):"
     )
     if user_response.lower().strip() != "y":
         sys.exit("ERROR: Exiting due to missing libraries.")
     import subprocess
 
     command = subprocess.run(
-        ["pip", "install"] + libraries + ["--quiet"],
+        ["pip", "install"] + libraries,
         capture_output=True,
         text=True,
     )
