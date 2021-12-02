@@ -1,3 +1,4 @@
 test.ipynb
 cpic_gene-drug_pairs.xlsx
 __pycache__/
+*.csv

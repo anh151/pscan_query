@@ -1,5 +1,7 @@
 import sys
 import warnings
+import os
+import re
 
 
 def install_dependencies(libraries):
@@ -33,15 +35,15 @@ warnings.filterwarnings("ignore", category=UserWarning, module="openpyxl")
 
 
 class SearchData:
-    def __init__(self):
-        self.data = None
+    def __init__(self, data=None):
+        self.data = data
         self.gene = None
         self.position = None
         self.rsid = None
         self.gene_cpic_data = None
 
     def filter_by_gene(self):
-        self.data = self.data.loc[self.data["gene"] == self.gene]
+        self.data = self.data.loc[self.data["gene"] == self.gene].copy()
 
     def filter_by_rsid(self):
         self.data = self.data.loc[self.data["rsid"] == self.rsid]
@@ -95,6 +97,33 @@ class SearchData:
     def merge_data(self):
         self.data = self.data.merge(self.gene_cpic_data, on="rsid", how="left")
 
+    def check_gene_input(self):
+        possible_genes = self.data["gene"].unique()
+        if self.gene not in possible_genes:
+            sys.exit("ERROR: Gene provided does not exist in the file.")
+
+    def check_rsid_input(self):
+        if re.match(r"^rs\d+$", self.rsid, flags=re.IGNORECASE) is None:
+            sys.exit(
+                "ERROR: Incorrect format provided for rsID. Must be in format of rs1234."
+            )
+        possible_rsids = self.data["rsid"].unique()
+        if self.rsid not in possible_rsids:
+            sys.exit("ERROR: The rsID provided does not have a corresponding probe.")
+
+    def check_position_input(self):
+        try:
+            self.position = int(self.position)
+        except ValueError:
+            sys.exit(
+                "ERROR: Incorrect format provided for position. Must be in format 123456789."
+            )
+        possible_positions = self.data["pos"].unique()
+        if self.position not in possible_positions:
+            sys.exit(
+                "ERROR: The position provided does not have a corresponding_probe."
+            )
+
 
 def read_table(file_path):
     pscan_data = (
@@ -121,3 +150,25 @@ def read_table(file_path):
         .astype({"pos": "Int64"})
     )
     return pscan_data
+
+
+def check_input_file(file):
+    if file is None:
+        sys.exit("ERROR: Pharmacoscan input file is required.")
+    if not os.path.isfile(file):
+        sys.exit(
+            "ERROR: Unable to find pharmacoscan input file.\nPath is either invalid or file does not exist."
+        )
+
+
+def check_output_path(output_path):
+    dir_path = os.path.dirname(output_path)
+    if len(dir_path) == 0:
+        return
+    if not os.path.isdir(dir_path):
+        sys.exit("ERROR: Output file path is not valid.")
+
+
+def check_overall_input(args):
+    if not args.gene and not args.position and not args.rsid:
+        sys.exit("ERROR: Must supply one of gene, position, or rsid.")

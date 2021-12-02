@@ -7,9 +7,11 @@ Requirements:
 - Python >= 3.6
 
 Dependencies:
-- pandas
-- requests
-- openpyxl
+- pandas==1.3.2
+- requests==2.22.0
+- dash==1.21.0 (only if using the GUI)
+- openpyxl==3.0.7
+
 
 If dependencies are not already preinstalled, pscan_query will attempt to install these on the first run with user permission.
 
@@ -20,6 +22,10 @@ cd pscan_query
 ```
 
 ## Running
+
+This query tool can be run using two different methods. The first method is using the command line interface shown in method 1. The second option is using the GUI provided. Note that method two does have an additional dependency of `dash`. 
+
+### Method 1 Command Line Interface:
 
 ```
 Arguments:
@@ -47,3 +53,9 @@ python3 pscan_query.py -g CYP2C19 -p 123456789 -o /path/to/directory/cyp2c19_out
 ```sh
 python3 pscan_query.py -g CYP2C19 -p rs12345 -o /path/to/directory/cyp2c19_output.csv
 ```
+
+### Method 2 GUI:
+
+The GUI can be launched by running the app.py file. If the required libraries are not installed, the app will attempt to install them with user permission.
+
+Future images in progress. 
