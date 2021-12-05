@@ -52,7 +52,6 @@ def main():
     utils.check_overall_input(args)
     search_data = utils.SearchData(pscan_data)
     if args.gene:
-        print(args.gene)
         search_data.gene = args.gene.strip().upper()
         search_data.check_gene_input()
         search_data.filter_by_gene()
@@ -72,8 +71,7 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
-    # try:
-    #     main()
-    # except:
-    #     print("An unknown error as occurred.")
+    try:
+        main()
+    except:
+        print("An unknown error as occurred.")

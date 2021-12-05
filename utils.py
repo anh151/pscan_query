@@ -4,7 +4,7 @@ import os
 import re
 
 
-def install_dependencies(libraries):
+def install_dependencies():
     user_response = input(
         "Required libraries are not installed. Allow global installation? (y/n):"
     )
@@ -13,13 +13,13 @@ def install_dependencies(libraries):
     import subprocess
 
     command = subprocess.run(
-        ["pip", "install"] + libraries,
+        ["pip", "install", "-r", "requirements.txt"],
         capture_output=True,
         text=True,
     )
     if command.returncode != 0:
         sys.exit(
-            f"ERROR: Attempt to install dependencies manually resulted in error:{command.stderr}.\nTry installing manully."
+            f"ERROR: Attempt to install dependencies resulted in error:{command.stderr}.\nTry installing manually."
         )
 
 
@@ -27,7 +27,7 @@ try:
     import pandas as pd
     import requests
 except ModuleNotFoundError:
-    install_dependencies(["pandas", "requests", "openpyxl", "dash"])
+    install_dependencies()
     import pandas as pd
     import requests
 
