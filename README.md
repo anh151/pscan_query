@@ -27,7 +27,7 @@ Note: Currently this is only supported on Windows. Windows 11 has not been teste
 
 The GUI can be launched by running the single file excutable provided here:
 
-[Download](https://pitt-my.sharepoint.com/:u:/g/personal/anh151_pitt_edu/EY-Hu7ZF0GxMlNXyeRRbeGEBW2N0N5-IxDn4bEG36-8HYw?e=KqafES)
+[Download](https://pitt-my.sharepoint.com/:u:/g/personal/anh151_pitt_edu/EY-Hu7ZF0GxMlNXyeRRbeGEBW2N0N5-IxDn4bEG36-8HYw?download=1)
 
 ### Method 2 from source code:
 
@@ -35,8 +35,10 @@ The GUI can be launched by running the app.py file.
 
 Note: You must have the dependencies installed and also download the pscan_table_r9.csv file if you are using this method.
 
+[Table](https://pitt-my.sharepoint.com/:x:/g/personal/anh151_pitt_edu/EZuJUU5vYHBCswn3UNj_bhAB76MB1uM3YgtkUf-CMLot9A?download=1)
+
 ## Running Queries
-Current queries options that are supported include by rsID and by gene. Future updates will add by allele for the common PGx genes. Running a query can be achieved by adding rsIDs/genes to the text box or selecting a file that has one gene/rsid on each line or separated by commas. I.e
+Current queries options that are supported include by rsID or by gene. Future updates will add an option to query by allele for common PGx genes. Running a query can be achieved by entering rsIDs/genes in the text box or selecting a file that has one gene/rsid on each line or separated by commas. I.e
 
 ```sh
 CYP2C19
@@ -58,3 +60,6 @@ File export options:
 - tsv
 - xlsx (xls is no longer supported and will be exported as xlsx)
 - All other extensions will be defaulted to a tab delimited file
+
+## Bugs and desired features
+Please report any bugs and/or desired features to either the github issues page or to andrew.haddad@pitt.edu

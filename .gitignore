@@ -1,4 +1,6 @@
-test.ipynb
-cpic_gene-drug_pairs.xlsx
+*.ipynb
+*.xlsx
 __pycache__/
 *.csv
+AFFX_README-NetAffx-CSV-Files_Axiom.txt
+*.zip
