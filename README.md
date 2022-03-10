@@ -1,6 +1,10 @@
-# pscan_query
+# Pharmascoan Query
 
-Pharmacoscan query tool allows for fast querying of pharmacoscan annot library files. 
+Pharmacoscan query tool allows for fast querying of pharmacoscan annot library files. Current library version is r9. 
+
+Pharmacoscan library files can be found at the bottom of the pharmsocan page on the Thermo Fisher website provided below:
+
+[Pharmacoscan](https://www.thermofisher.com/order/catalog/product/903026)
 
 ## Installation (Only needed if you intend to run using the source code)
 Requirements:
@@ -38,7 +42,7 @@ Note: You must have the dependencies installed and also download the pscan_table
 [Table](https://pitt-my.sharepoint.com/:x:/g/personal/anh151_pitt_edu/EZuJUU5vYHBCswn3UNj_bhAB76MB1uM3YgtkUf-CMLot9A?download=1)
 
 ## Running Queries
-Current queries options that are supported include by rsID or by gene. Future updates will add an option to query by allele for common PGx genes. Running a query can be achieved by entering rsIDs/genes in the text box or selecting a file that has one gene/rsid on each line or separated by commas. I.e
+Current queries options include by rsID or by gene. Future updates will add an option to query by allele for common PGx genes. Running a query can be achieved by entering rsIDs/genes in the text box or selecting a file that has one gene/rsid on each line or separated by commas on the same line. I.e
 
 ```sh
 CYP2C19
@@ -53,7 +57,7 @@ CYP2C19,CYP2D6
 
 File input options:
 
-Input file must be a plain text file such as csv/tsv/txt. Excel or other binary files types are not supported.
+- Input file must be a plain text file such as csv/tsv/txt. Excel or other binary files types are not supported.
 
 File export options:
 - csv
