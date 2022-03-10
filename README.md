@@ -12,7 +12,6 @@ Requirements:
 
 Dependencies:
 - pandas==1.3.2
-- requests==2.22.0
 - openpyxl==3.0.7
 
 
