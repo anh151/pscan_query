@@ -1,165 +1,299 @@
-import re
-import utils
-import webbrowser
+from tkinter import *
+from tkinter import filedialog, font, ttk
 
-try:
-    import dash
-except ModuleNotFoundError:
-    utils.install_dependencies()
-    import dash
-from dash.dependencies import Input, Output
-from dash import dcc, html, dash_table
-
-
-external_stylesheets = ["https://codepen.io/chriddyp/pen/bWLwgP.css"]
-
-app = dash.Dash(
-    __name__,
-    external_stylesheets=external_stylesheets,
-    suppress_callback_exceptions=True,
-)
-
-webbrowser.open("http://127.0.0.1:8050/")
-pscan_data = utils.read_table("PharmacoScan_96F.r8_UPMC_2.na36.dc_annot.csv")
-
-search_data = utils.SearchData()
-
-
-app.layout = html.Div(
-    children=[
-        html.H4("Pharmacoscan Query Tool", id="header"),
-        html.Div(
-            [
-                html.Div(
-                    [
-                        dcc.Dropdown(
-                            id="gene_drop_down",
-                            options=[
-                                {"label": gene, "value": gene}
-                                for gene in pscan_data["gene"].unique()
-                            ],
-                            placeholder="Select a gene to query.",
-                            multi=False,
-                        ),
-                    ],
-                ),
-                dcc.Textarea(
-                    id="text_rsid_search",
-                    placeholder="Please enter an rsID to search for.",
-                    style={"width": "100%"},
-                ),
-                html.Div(
-                    id="text_rsid_search_error",
-                    style={"whiteSpace": "pre-line", "color": "red"},
-                ),
-                dcc.Textarea(
-                    id="text_pos_search",
-                    placeholder="Please enter a position to search for.",
-                    style={"width": "100%"},
-                ),
-                html.Div(
-                    id="text_pos_search_error",
-                    style={"whiteSpace": "pre-line", "color": "red"},
-                ),
-                html.Div(
-                    [
-                        html.Button("Submit", id="submit_button", n_clicks=0),
-                        html.Div(
-                            id="overall_error",
-                            style={"whiteSpace": "pre-line", "color": "red"},
-                        ),
-                    ]
-                ),
-                html.Div(
-                    dash_table.DataTable(id="data_table"),
-                    style={"display": "inline-block", "width": "40%"},
-                ),
-            ],
-            style={"display": "inline-block", "width": "20%"},
-        ),
-    ]
+from app_utils import (
+    export_data,
+    parse_gene_text,
+    parse_rsid_text,
+    query_table,
+    read_file,
+    create_pretty_filename,
 )
 
 
-@app.callback(
-    Output("text_rsid_search_error", "children"),
-    Input("text_rsid_search", "value"),
-)
-def validate_rsid_input(rsid):
-    search_data.rsid = None
-    if rsid is None or rsid == "":
-        return ""
-    rsid = rsid.strip().lower()
-    if re.match(r"^rs\d+$", rsid) is None:
-        return "ERROR: rsID is in incorrect format. Format accepted is rs123456"
-    possible_rsids = pscan_data["rsid"].unique()
-    if rsid not in possible_rsids:
-        return "ERROR: rsID provided does not exist within the file."
-    search_data.rsid = rsid
-    return ""
+class EnteredData:
+    def __init__(self):
+        self.option_selected = "gene"
+        self.query_data = None
+        self.file_in = None
+        self.query_results = None
+        self.save_file = None
 
 
-@app.callback(
-    Output("text_pos_search_error", "children"),
-    Input("text_pos_search", "value"),
-)
-def validate_position_input(position):
-    search_data.position = None
-    if position is None or position == "":
-        return ""
-    try:
-        position = int(position)
-    except ValueError:
-        return "ERROR: Incorrect format provided for position. Must be in format 123456789."
+class App(Tk):
+    label_options = {
+        "gene": "Enter a gene(s) to search or select a file",
+        "rsid": "Enter an rsID(s) to search or select a file",
+        "allele": "Allele search is not yet supported",
+    }
+    entry_options = {
+        "gene": "Ex:\nCYP2D6\nCYP2C9\nor\nCYP2D6,CYP2C9",
+        "rsid": "Ex:\nrs1234\nrs5678\nor\nrs1234,rs5678",
+        "allele": "Allele search is not yet supported",
+    }
+    default_search = "gene"
 
-    possible_positions = pscan_data["pos"].unique()
-    if position not in possible_positions:
-        return "ERROR: The position provided does not have a corresponding probe."
-    search_data.position = position
-    return ""
+    def __init__(self):
+        super().__init__()
+        self.entered_data = EnteredData()
 
+        style = ttk.Style()
+        style.theme_use("alt")
 
-@app.callback(Output("gene_drop_down", "value"), Input("gene_drop_down", "value"))
-def get_genes(gene):
-    search_data.gene = gene
-    return dash.no_update
+        self.title("Pharmacoscan Query Tool")
+        # Set window size
+        # root.geometry("550x550")
+        # Disable resizing of the window using maximize button
+        # root.resizable(0, 0)
 
+        #####radio button and entry labels######
+        self.frame_label_radiobuttons = Frame(self)
+        self.frame_label_radiobuttons.grid(row=0, column=0)
 
-@app.callback(
-    Output("overall_error", "children"),
-    Output("submit_button", "n_clicks"),
-    Output("data_table", "columns"),
-    Output("data_table", "data"),
-    Input("submit_button", "n_clicks"),
-)
-def compile_results(n_clicks):
-    if n_clicks == 0:
-        return dash.no_update, dash.no_update, dash.no_update, dash.no_update
-    n_clicks = 0
-    if not search_data.gene and not search_data.rsid and not search_data.position:
-        return (
-            "Must supply one of gene, position, or rsid",
-            n_clicks,
-            dash.no_update,
-            dash.no_update,
+        ######radio buttons for query type######
+        self.frame_radio_buttons = Frame(self)
+        self.frame_radio_buttons.grid(row=1, column=0, padx=20)
+        self.label_radiobuttons = Label(
+            self.frame_radio_buttons, text="Select a type of query:"
         )
-    # Making a copy of the data here so I don't permanently overwrite
-    search_data.data = pscan_data.copy()
-    if search_data.gene:
-        search_data.filter_by_gene()
-        search_data.get_probe_count()
-        search_data.send_cpic_request()
-        if search_data.gene_cpic_data is not None:
-            search_data.merge_data()
-    if search_data.rsid:
-        search_data.filter_by_rsid()
-    if search_data.position:
-        search_data.filter_by_position_input()
-    # Creates variables needed to create the data table
-    columns = [{"name": i, "id": i} for i in search_data.data.columns]
-    data = search_data.data.to_dict("records")
-    return "", n_clicks, columns, data
+        self.label_radiobuttons.grid(row=0, column=0)
+
+        self.option_selected = StringVar(None, "gene")
+        button_labels = {"By Gene": "gene", "By rsID": "rsid", "By Allele": "allele"}
+        for i, (text, value) in enumerate(button_labels.items(), 1):
+            font_ = font.Font()
+            if value == "allele":
+                font_ = font.Font(overstrike=1)
+            radiobutton = Radiobutton(
+                self.frame_radio_buttons,
+                text=text,
+                variable=self.option_selected,
+                value=value,
+                command=self.query_option_selected,
+                font=font_,
+            )
+            radiobutton.grid(row=i, column=0, sticky="w")
+
+        ######Entry Label and Text Field######
+        self.frame_labels_entry = Frame(self)
+        self.frame_labels_entry.grid(row=0, column=1)
+        self.label_entry = Label(
+            self.frame_labels_entry, text=self.label_options[self.default_search]
+        )
+        self.label_entry.grid(row=0, column=0)
+
+        self.frame_text_entry = Frame(self)
+        self.frame_text_entry.grid(row=1, column=1)
+
+        self.text_entry = Text(self.frame_text_entry, width=20, height=6)
+        self.text_entry.insert(INSERT, self.entry_options[self.default_search])
+        self.text_entry.grid(row=0, column=0)
+        self.text_entry.bind("<Control-Key-a>", self.select_all)
+        self.text_entry.bind("<Control-Key-A>", self.select_all)
+        self.text_scroll_entry = ttk.Scrollbar(
+            self.frame_text_entry, command=self.text_entry.yview
+        )
+        self.text_scroll_entry.grid(row=0, column=1, sticky="nsew")
+        self.text_entry["yscrollcommand"] = self.text_scroll_entry.set
+
+        self.frame_text_browse = Frame(self)
+        self.frame_text_browse.grid(row=2, column=1)
+        self.file_button_entry = Button(
+            self.frame_text_browse,
+            text="Browse Files",
+            command=self.select_file_open,
+        )
+        self.file_button_entry.grid(row=0, column=0)
+        self.label_entry_info = Label(self.frame_text_browse, text="")
+        self.label_entry_info.grid(row=1, column=0)
+
+        #####Submit label and  button#####
+        self.frame_submit = Frame(self)
+        self.frame_submit.grid(row=3, column=0, columnspan=2)
+        self.label_error = Label(self.frame_submit, text="", fg="red")
+        self.label_error.grid(row=0, column=0)
+
+        self.button_submit = Button(
+            self.frame_submit, text="Submit Query", command=self.submit
+        )
+        self.button_submit.grid(row=1, column=0)
+
+        #####table label######
+        self.frame_table_label = Frame(self)
+        self.frame_table_label.grid(row=4, column=0, pady=(10, 2), columnspan=2)
+        self.label_table = Label(self.frame_table_label, text="")
+        self.label_table.grid(row=0, column=0)
+
+        ####table#####
+        self.frame_table = Frame(self)
+        self.frame_table.grid(row=5, column=0, columnspan=2)
+
+        self.data_table = ttk.Treeview(self.frame_table)
+        self.data_table.grid(row=0, column=0)
+        self.data_table.grid_remove()
+        self.table_scroll = ttk.Scrollbar(
+            self.frame_table, command=self.data_table.yview
+        )
+        self.table_scroll.grid(row=0, column=1, sticky="nsew")
+        self.data_table["yscrollcommand"] = self.table_scroll.set
+        self.table_scroll.grid_remove()
+
+        # # #####export button#####
+        self.file_button_export = Button(
+            self.frame_table, text="Export Table", command=self.select_file_save
+        )
+        self.file_button_export.grid(row=2, column=0)
+        self.file_button_export.grid_remove()
+        self.label_export = Label(self.frame_table, text="")
+        self.label_export.grid(row=3, column=0)
+
+    @staticmethod
+    def select_all(event):
+        event.widget.tag_add(SEL, "1.0", END)
+        event.widget.mark_set(INSERT, "1.0")
+        event.widget.see(INSERT)
+        return "break"
+
+    def select_file_open(self):
+        file_path = filedialog.askopenfilename(title="Select a File")
+        if isinstance(file_path, tuple) or file_path == "":
+            self.file_button_entry.configure(text="Browse Files")
+            self.entered_data.file_in = None
+            return
+        text = create_pretty_filename(file_path)
+        self.file_button_entry.configure(text=text)
+        self.entered_data.file_in = file_path
+
+    def select_file_save(self):
+        file_path = filedialog.asksaveasfilename(title="Select a file name for export")
+        if file_path is None or file_path == "":
+            # asksaveasfile return `None` if dialog closed with "cancel".
+            if self.entered_data.save_file is not None:
+                text = create_pretty_filename(self.entered_data.save_file)
+                self.file_button_export.configure(text=text)
+            return
+        text = create_pretty_filename(file_path, save=True)
+        if text.endswith("xls"):
+            text = text.replace("xls", "xlsx")
+        self.entered_data.save_file = file_path
+        error = export_data(
+            self.entered_data.query_results, self.entered_data.save_file
+        )
+        if error == PermissionError:
+            self.error_label_update("Unable to save output. Permission Denied")
+        elif error == FileNotFoundError:
+            self.error_label_update("Directory for output file does not exist")
+        self.file_button_export.configure(text=text)
+        self.label_export.configure(text="Data exported Succesfully")
+
+    def reset_table(self):
+        # Couldn't figure out any other way of doing this other than
+        # destroying the entire table widget and recreating it
+        self.data_table.destroy()
+        self.data_table = ttk.Treeview(self.frame_table)
+        self.data_table.grid(row=0, column=0)
+        self.table_scroll.destroy()
+        self.table_scroll = ttk.Scrollbar(
+            self.frame_table, command=self.data_table.yview
+        )
+        self.table_scroll.grid(row=0, column=1, sticky="nsew")
+        self.data_table["yscrollcommand"] = self.table_scroll.set
+
+    def build_table(self, df):
+        self.reset_table()
+        self.label_table.configure(text="Query Results")
+        self.data_table.grid()
+        self.data_table.configure(columns=df.columns.tolist())
+        self.table_scroll.grid()
+
+        self.data_table.column("#0", width=0, stretch=NO)
+        self.data_table.heading("#0", text="", anchor=CENTER)
+
+        for column in df.columns:
+            width = 100
+            if column == "Ref" or column == "Alt":
+                width = 40
+            self.data_table.column(column, anchor=CENTER, width=width, stretch=NO)
+            self.data_table.heading(column, text=column, anchor=CENTER)
+        for iid, row_data in df.iterrows():
+            values = row_data.values.tolist()
+            self.data_table.insert(
+                parent="", index="end", iid=iid, text="", values=values
+            )
+
+    def error_label_update(self, text):
+        self.label_error.configure(text=text)
+
+    def reset_data(self):
+        self.error_label_update("")
+        self.entered_data.query_data = None
+        self.label_export.configure(text="")
+        self.label_table.configure(text="")
+        self.label_entry_info.configure(text="")
+
+    def reset_entered_data(self):
+        self.entered_data.file_in = None
+        self.entered_data.query_data = None
+
+    def submit(self):
+        self.reset_data()
+        text_entered = self.text_entry.get("1.0", END)
+        if self.entered_data.option_selected == "gene":
+            parsed_data = parse_gene_text(text_entered)
+        elif self.entered_data.option_selected == "rsid":
+            parsed_data = parse_rsid_text(text_entered)
+        elif self.entered_data.option_selected == "allele":
+            self.reset_entered_data()
+            return
+        if parsed_data is not None:
+            self.entered_data.query_data = parsed_data
+
+        if self.entered_data.query_data and self.entered_data.file_in:
+            self.error_label_update("Can only accept one of text entry or file")
+            return
+
+        if self.entered_data.file_in:
+            data_type = self.entered_data.option_selected
+            parsed_data, error = read_file(
+                self.entered_data.file_in, data_type=data_type
+            )
+            if error == PermissionError:
+                self.error_label_update("Permission denied when accessing file")
+                self.reset_entered_data()
+                return
+            elif error == FileNotFoundError:
+                self.error_label_update("Unable to find file")
+                self.reset_entered_data()
+                return
+            elif error == UnicodeDecodeError:
+                self.error_label_update("Unable to handle binary files")
+                self.reset_entered_data()
+                return
+            if parsed_data is not None:
+                self.entered_data.query_data = parsed_data
+        if self.entered_data.query_data is None:
+            self.error_label_update("Must supply one of text entry or file")
+            return
+        text = f"Parsed out {len(self.entered_data.query_data)} {self.entered_data.option_selected}"
+        self.label_entry_info.configure(text=text)
+
+        query_results = query_table(self.entered_data.query_data)
+        self.entered_data.query_results = query_results
+        self.build_table(self.entered_data.query_results)
+        self.file_button_export.grid()
+
+    def query_option_selected(self):
+        self.entered_data.option_selected = self.option_selected.get()
+        text_label_option = self.label_options[self.entered_data.option_selected]
+        self.label_entry.configure(text=text_label_option)
+
+        self.text_entry.delete("1.0", END)
+        text_entry_option = self.entry_options[self.entered_data.option_selected]
+        self.text_entry.insert(INSERT, text_entry_option)
+
+        self.file_button_entry.configure(text="Browse Files")
 
 
 if __name__ == "__main__":
-    app.run_server(port=8050)
+    app = App()
+    app.mainloop()
